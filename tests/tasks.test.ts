@@ -1,3 +1,4 @@
+import { min } from 'date-fns/fp';
 import { describe, expect, test } from 'vitest';
 import { getTaskColumns } from './utils/get-task-columns';
 import { getTasks } from './utils/get-tasks';
@@ -6,7 +7,6 @@ import { filterStandupTasks, filterStartedTasks } from './utils/task-filters';
 
 describe('Tasks', async () => {
   const tasks = await getTasks();
-  // console.log('Tasks: ', tasks);
 
   if (!tasks || tasks.length === 0) {
     console.log('No data found');
@@ -188,7 +188,49 @@ describe('Tasks', async () => {
       expect(moreThanTwoDaysTasks, `Missing task time breakdown: ${JSON.stringify(moreThanTwoDaysTasks, null, 2)}`).toEqual([]);
     });
 
-    // Task breakdown and actual end date time should be same
+    // Task breakdown and actual end date should be same
+    test('Task breakdown and actual end date time should be same', () => {
+      const moreThanTwoDaysTasks = tasks.filter((t) => {
+        const { startDate, actualEndDate, taskTimebreakdown, status } = getTaskColumns(t);
+        return status !== 'On Hold' && startDate !== actualEndDate && taskTimebreakdown !== '' && taskTimebreakdown !== undefined;
+      });
+      const calculatedTime = moreThanTwoDaysTasks.filter((t) => {
+        const { actualEndDate, taskTimebreakdown } = getTaskColumns(t);
+        const dateTimeBreakdown = taskTimebreakdown.split('\n');
+        const lastDate = dateTimeBreakdown[dateTimeBreakdown.length - 1].split('-')[0].trim();
+        // const timeBreakdown = dateTimeBreakdown.map((s) => s.split('-')).reduce((acc, val) => Number(val[1]) + acc, 0);
+
+        return lastDate !== actualEndDate;
+      });
+      expect(calculatedTime, `Task time breakdown and actual end-date is not same: ${JSON.stringify(calculatedTime, null, 2)}`).toEqual([]);
+    });
+
+    // actual hours and task time breakdown should be same
+    test('Actual hours and task time breakdown should be same', () => {
+      const moreThanTwoDaysTasks = tasks.filter((t) => {
+        const { startDate, actualEndDate, taskTimebreakdown } = getTaskColumns(t);
+        return startDate !== actualEndDate && taskTimebreakdown !== '' && taskTimebreakdown !== undefined;
+      });
+      const calculatedTime = moreThanTwoDaysTasks.filter((t) => {
+        const { actualHours, taskTimebreakdown, title } = getTaskColumns(t);
+        const dateTimeBreakdown = taskTimebreakdown.split('\n');
+        const totalTime = dateTimeBreakdown
+          .map((s) => s.split('-'))
+          .reduce((acc, val) => {
+            const [hours, minutes] = val[1].trim().split(':');
+            const minutesRoundoff = Math.round((Number(minutes) * 100) / 60) / 100;
+            const totalTime = Number(hours) + minutesRoundoff;
+
+            return totalTime + acc;
+          }, 0);
+
+        const res = Number(actualHours) !== totalTime;
+
+        return res;
+      });
+      expect(calculatedTime, `Task time breakdown and actual hours is not same: ${JSON.stringify(calculatedTime, null, 2)}`).toEqual([]);
+    });
+
     // Each working day should have at least 7.5 hours
   });
 

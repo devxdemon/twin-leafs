@@ -19,6 +19,8 @@ async function main() {
       return;
     }
 
+    // Check
+
     console.log('Data: ', rows);
   } catch (err) {
     console.log('Failed to get data');
