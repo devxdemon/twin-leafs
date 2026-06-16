@@ -273,7 +273,8 @@ describe('Tasks', async () => {
 
   // describe - status call
 
-  // Each task should have all the columns filled
+  // Completed task should have all the columns filled
+  // In progress or On hold task should have all columns filled except actual-end-date
 
   // Metrics
   const standupTasks = tasks.filter((t) => {
